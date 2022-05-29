@@ -21,9 +21,23 @@ public class Controller : MonoBehaviour, IEnhancedScrollerDelegate
     
     private InventoryItemDisplay InventoryItemSelected = null;
 
+    private InventoryItemDisplay InventoryItemDrag = null;
+    private Vector3 InventoryItemDragDefaultPosition;
+    private InventoryItemDisplay InventoryItemDrop = null;
+
+
     void Start()
     {
         scroller.Delegate = this;
+    }
+    
+    void Update()
+    {
+        if (InventoryItemDrag == null)
+        {
+            return;
+        }
+        InventoryItemDrag.transform.position = Input.mousePosition;
     }
 
     public void setItemList(List<InventoryItemData> InventoryItemDatas)
@@ -63,9 +77,66 @@ public class Controller : MonoBehaviour, IEnhancedScrollerDelegate
         List<InventoryItemDisplay> iid = cellView.SetData(ref InventoryItemDatas, dataIndex * numberOfCellsPerRow);
         foreach (InventoryItemDisplay item in iid)
         {
+            item.OnItemBeginDrag += HandleBeginDrag;
+            item.OnItemDroppedOn += HandleSwap;
+            item.OnItemEndDrag += HandleEndDrag;
             item.OnItemClicked += HandleClick;
         }
         return cellView;
+    }
+    
+    private void HandleBeginDrag(InventoryItemDisplay inventoryItemUI)
+    {        
+        int index = InventoryItemDatas.IndexOf(inventoryItemUI.item);
+        if (index == -1)
+            return;
+        InventoryItemDrag = inventoryItemUI;
+        InventoryItemDragDefaultPosition = inventoryItemUI.transform.position;
+        inventoryItemUI.GetComponent<Graphic>().color = new Color32(255,255,255,160);
+    }   
+    
+    private void HandleSwap(InventoryItemDisplay inventoryItemUI)
+    {
+        int index = InventoryItemDatas.IndexOf(inventoryItemUI.item);
+        if (index == -1)
+            return;
+        InventoryItemDrop = inventoryItemUI;
+    }
+    
+    private void HandleEndDrag(InventoryItemDisplay inventoryItemUI)
+    {
+        int index = InventoryItemDatas.IndexOf(inventoryItemUI.item);
+        if (index == -1)
+            return;
+        Swap();
+        ResetDraggedItem();
+        if (InventoryItemSelected == inventoryItemUI)
+        {
+            inventoryItemUI.GetComponent<Graphic>().color = Color.red;
+        }
+        else
+        {
+            inventoryItemUI.GetComponent<Graphic>().color = Color.white;
+        }
+    }
+    
+    private void Swap()
+    {
+        // Debug.Log("drag " +dragIndex);
+        // Debug.Log("drop " +dropIndex);
+        //
+        InventoryItemDrag.transform.position = InventoryItemDrop.transform.position;
+        InventoryItemDrop.transform.position = InventoryItemDragDefaultPosition;
+        
+        // InventoryItemDisplay drag = InventoryItemDrag;
+        // InventoryItemDrag = InventoryItemDrop;
+        // InventoryItemDrop = drag;
+    }
+    
+    private void ResetDraggedItem()
+    {
+        InventoryItemDrag = null;
+        InventoryItemDrag = null;
     }
     
     private void HandleClick(InventoryItemDisplay inventoryItemUI)
@@ -80,7 +151,7 @@ public class Controller : MonoBehaviour, IEnhancedScrollerDelegate
         InventoryItemSelected = inventoryItemUI;
         InventoryItemSelected.GetComponent<Graphic>().color = Color.red;
     }
-
+    
     public int deleteItem()
     {
         int index = InventoryItemDatas.IndexOf(InventoryItemSelected.item);
